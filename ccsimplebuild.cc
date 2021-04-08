@@ -1,6 +1,7 @@
 #include <cassert>
 #include <filesystem>
 #include <iostream>
+#include <map>
 #include <sstream>
 #include <thread>
 #include <unordered_map>
@@ -123,7 +124,10 @@ void buildCmd(string cmd)
   if (kDryRun)
     cout<<"WOULD run: "<<cmd<<endl;
   else
+  {
+    cout<<cmd<<endl;
     runShellSync(cmd.c_str());
+  }
 }
 
 class DepNode
@@ -139,12 +143,10 @@ public:
 
   void addDep(string path, DepNode* node) { deps_[path] = node; }
 
-  bool needRebuild()
+  bool weAreReal()
   {
-    for (auto [path, node] : deps_)
-      if (node->modified_ > modified_)
-        return true;
-    return false;
+    return endsWith(path_, ".o") || path_ == kTargetBinaryName ||
+           g_explicit_deps.find(path_) != g_explicit_deps.end();
   }
 
   void rebuild()
@@ -177,12 +179,21 @@ public:
     modified_ = time(0);
   }
 
-  void rebuildIfNeeded()
+  bool rebuildIfNeeded(time_t cutoff)
   {
+    bool need_rebuild = false;
+    if (weAreReal() && cutoff > modified_)
+      cutoff = modified_;
+    if (modified_ > cutoff)
+      need_rebuild = true;
+
     for (auto [path, node] : deps_)
-      node->rebuildIfNeeded();
-    if (needRebuild())
+      if (node->rebuildIfNeeded(cutoff))
+        need_rebuild = true;
+
+    if (need_rebuild)
       rebuild();
+    return need_rebuild;
   }
 
   void printTree(int depth)
@@ -196,7 +207,7 @@ public:
 private:
   string path_;
   time_t modified_ = 0;
-  unordered_map<string, DepNode*> deps_;
+  map<string, DepNode*> deps_;
 };
 // key is path of dependency output. e.g. if the key is foo.o, the DepNode will
 // have a single dependency of foo.c. foo.c and foo.h will also be keys in this
@@ -282,5 +293,6 @@ int main()
   // g_all_nodes[kTargetBinaryName].printTree(0);
 
   // we should now have a complete dependency graph. traverse it to build.
-  g_all_nodes[kTargetBinaryName].rebuildIfNeeded();
+  if (!g_all_nodes[kTargetBinaryName].rebuildIfNeeded(time(0)))
+    cout << "ccsimplebuild: '"<<kTargetBinaryName<<"' is up to date." << endl;
 }
