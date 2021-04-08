@@ -156,6 +156,7 @@ public:
       string cmd(kCompileCmdPrefix);
       cmd += " " + g_explicit_deps[path_].cmd_after_compile_prefix;
       buildCmd(cmd);
+      modified_ = time(0);
     }
     else if (endsWith(path_, ".o"))
     {
@@ -166,6 +167,7 @@ public:
         string cmd(kCompileCmdPrefix);
         cmd += " -c -o " + path_ + " " + depname;
         buildCmd(cmd);
+        modified_ = time(0);
       }
     }
     else if (path_ == kTargetBinaryName)
@@ -175,9 +177,8 @@ public:
         cmd += " " + name;
       cmd += " -o " + string(kTargetBinaryName) + " " + kCompileEndLibs;
       buildCmd(cmd);
-    }
-    if (weAreReal())
       modified_ = time(0);
+    }
   }
 
   bool rebuildIfNeeded(time_t cutoff)
