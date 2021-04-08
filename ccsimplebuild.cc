@@ -176,7 +176,8 @@ public:
       cmd += " -o " + string(kTargetBinaryName) + " " + kCompileEndLibs;
       buildCmd(cmd);
     }
-    modified_ = time(0);
+    if (weAreReal())
+      modified_ = time(0);
   }
 
   bool rebuildIfNeeded(time_t cutoff)
