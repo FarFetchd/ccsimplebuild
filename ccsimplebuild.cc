@@ -1,5 +1,6 @@
 #include <cassert>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <map>
 #include <sstream>
@@ -9,26 +10,23 @@
 
 using namespace std;
 constexpr bool kDryRun = false;
+vector<string> splitString(string s, char delim);
 
 // =============================================================================
-// "to be loaded": everything in this section should ideally come from some
-// config file, analagous to a Makefile.
+// everything in this section comes from ccsimple.buildfile, which is
+// analagous to a Makefile.
 //
 // name of binary to build
-const char kTargetBinaryName[] = "strider_ib_gateway_client";
-// g++ and front flags
-const char kCompileCmdPrefix[] =
-    "g++ -I\"TwsApiCpp/TwsApiC++/Api\" -I\"TwsApiCpp/TwsApiC++/Src\" "
-    "-I\"TwsApiCpp/source/PosixClient/Shared\" "
-    "-I\"TwsApiCpp/source/PosixClient/src\" -g -pthread -D_REENTRANT -D_DEBUG "
-    "-std=c++17 -Wall -Wno-switch -Wno-psabi";
-// end lib flags
-const char kCompileEndLibs[] = "-latomic -lcurl";
+string g_target_binary_name;
+// g++ and front flags, e.g. g++ -g -Wall
+string g_compile_cmd_prefix;
+// end lib flags, e.g. -latomic -lcurl
+string g_compile_end_libs;
 
 // list of binary target's additional deps:
 //  pathname of dep output (key of map)
 //  list of pathnames of files it depends on
-//  command to execute (everything AFTER g++ and front flags)
+//  command to execute (everything AFTER g_compile_cmd_prefix)
 struct ExplicitDep
 {
   ExplicitDep() {}
@@ -39,24 +37,44 @@ struct ExplicitDep
 };
 // key is path
 unordered_map<string, ExplicitDep> g_explicit_deps;
-void loadExplicitDeps()
+
+void loadConfig()
 {
-  // e.g.:
-//   g_explicit_deps["obj/TwsApiL0.o"] = ExplicitDep(
-//       {
-//         "callbacks.cc",
-//         "callbacks.h",
-//         "TwsApiCpp/TwsApiC++/Api/TwsApiL0.h",
-//         "TwsApiCpp/TwsApiC++/Api/TwsApiDefs.h",
-//         "TwsApiCpp/TwsApiC++/Api/Enumerations.h",
-//         "TwsApiCpp/TwsApiC++/Src/TwsApiL0.cpp",
-//         "TwsApiCpp/source/PosixClient/src/EClientSocketBase.cpp",
-//         "TwsApiCpp/source/PosixClient/src/EPosixClientSocket.cpp",
-//         "TwsApiCpp/source/PosixClient/src/EPosixClientSocket.h",
-//         "TwsApiCpp/source/PosixClient/src/EPosixClientSocketPlatform.h"
-//       },
-//       "-c TwsApiCpp/TwsApiC++/Src/TwsApiL0.cpp -o obj/TwsApiL0.o");
-};
+  auto entry = filesystem::directory_entry("./ccsimple.buildfile");
+  if (!entry.exists() || !entry.is_regular_file())
+  {
+    g_target_binary_name = "default_ccsimplebuild_output";
+    g_compile_cmd_prefix = "g++ -std=c++17";
+    g_compile_end_libs = "";
+    return;
+  }
+  ifstream reader("./ccsimple.buildfile");
+  vector<string> lines;
+  string line;
+  while (getline(reader, line))
+    lines.push_back(line);
+  while (lines.back().empty())
+    lines.pop_back();
+  assert(lines.size() >= 3);
+  assert((lines.size() - 3) % 4 == 0);
+  assert(lines[0].find("OutputBinaryFilename=") == 0);
+  g_target_binary_name = lines[0].substr(21);
+  assert(lines[1].find("CompileCommandPrefix=") == 0);
+  g_compile_cmd_prefix = lines[1].substr(21);
+  assert(lines[2].find("LibrariesToLink=") == 0);
+  g_compile_end_libs = lines[2].substr(16);
+  for (int i = 3; i < lines.size(); i+=4)
+  {
+    assert(lines[i].find("ExplicitDependency:") == 0);
+    assert(lines[i+1].find("  Output=") == 0);
+    string output = lines[i+1].substr(9);
+    assert(lines[i+2].find("  CompileSuffix=") == 0);
+    string suffix = lines[i+2].substr(16);
+    assert(lines[i+3].find("  DependsOn=") == 0);
+    string depends = lines[i+3].substr(12);
+    g_explicit_deps[output] = ExplicitDep(splitString(depends, ','), suffix);
+  }
+}
 // =============================================================================
 
 string cleanPath(string path)
@@ -145,7 +163,7 @@ public:
 
   bool weAreReal()
   {
-    return endsWith(path_, ".o") || path_ == kTargetBinaryName ||
+    return endsWith(path_, ".o") || path_ == g_target_binary_name ||
            g_explicit_deps.find(path_) != g_explicit_deps.end();
   }
 
@@ -153,8 +171,8 @@ public:
   {
     if (auto it = g_explicit_deps.find(path_) ; it != g_explicit_deps.end())
     {
-      string cmd(kCompileCmdPrefix);
-      cmd += " " + g_explicit_deps[path_].cmd_after_compile_prefix;
+      string cmd = g_compile_cmd_prefix + " " +
+                   g_explicit_deps[path_].cmd_after_compile_prefix;
       buildCmd(cmd);
       modified_ = time(0);
     }
@@ -164,18 +182,17 @@ public:
       for (auto [depname, dep] : deps_)
       {
         assert(endsWith(depname, ".cc"));
-        string cmd(kCompileCmdPrefix);
-        cmd += " -c -o " + path_ + " " + depname;
+        string cmd = g_compile_cmd_prefix + " -c -o " + path_ + " " + depname;
         buildCmd(cmd);
         modified_ = time(0);
       }
     }
-    else if (path_ == kTargetBinaryName)
+    else if (path_ == g_target_binary_name)
     {
-      string cmd(kCompileCmdPrefix);
+      string cmd = g_compile_cmd_prefix;
       for (auto [name, val] : deps_)
         cmd += " " + name;
-      cmd += " -o " + string(kTargetBinaryName) + " " + kCompileEndLibs;
+      cmd += " -o " + g_target_binary_name + " " + g_compile_end_libs;
       buildCmd(cmd);
       modified_ = time(0);
     }
@@ -225,14 +242,13 @@ DepNode* getOrInsertNode(string path)
 
 void populateExplicitDeps()
 {
-  loadExplicitDeps();
   for (auto [expdepath, expdepstuff] : g_explicit_deps)
   {
     DepNode node(expdepath);
     for (auto const& depath : expdepstuff.dep_paths)
       node.addDep(depath, getOrInsertNode(depath));
     g_all_nodes[expdepath] = node;
-    g_all_nodes[kTargetBinaryName].addDep(expdepath, &g_all_nodes[expdepath]);
+    g_all_nodes[g_target_binary_name].addDep(expdepath, &g_all_nodes[expdepath]);
   }
 }
 
@@ -248,7 +264,9 @@ void makeObjDepFromCc(string cc_path, DepNode* target_binary)
 
 int main()
 {
-  DepNode target_binary(kTargetBinaryName);
+  loadConfig();
+
+  DepNode target_binary(g_target_binary_name);
 
   // first just put all *.h and *.cc in the source dir into the map.
   // just the items themselves; don't yet search for their deps.
@@ -287,14 +305,14 @@ int main()
 
   // actually add the target binary node to the map, and load in explicitly
   // specified deps (all of which the target binary is assumed to depend on).
-  g_all_nodes[kTargetBinaryName] = target_binary;
+  g_all_nodes[g_target_binary_name] = target_binary;
   populateExplicitDeps();
 
   // a nice pretty view of your dependency "tree", if you're interested.
   // (entries are duplicated for each parent that depends on them).
-  // g_all_nodes[kTargetBinaryName].printTree(0);
+  // g_all_nodes[g_target_binary_name].printTree(0);
 
   // we should now have a complete dependency graph. traverse it to build.
-  if (!g_all_nodes[kTargetBinaryName].rebuildIfNeeded(time(0)))
-    cout << "ccsimplebuild: '"<<kTargetBinaryName<<"' is up to date." << endl;
+  if (!g_all_nodes[g_target_binary_name].rebuildIfNeeded(time(0)))
+    cout<<"ccsimplebuild: '"<<g_target_binary_name<<"' is up to date."<<endl;
 }

@@ -1,0 +1,4 @@
+Basic example. Every file example.cc in the source dir will have
+`g++ -g -std=c++17 -Wall -c -o example.o example.cc`
+run on it, and once the .o's are all built, ccsimplebuild will run
+`g++ -g -std=c++17 -Wall example.o other.o all_the_objects.o -o my_fun_executable -latomic -lcurl`.
