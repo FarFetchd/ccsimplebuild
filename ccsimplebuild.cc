@@ -148,6 +148,8 @@ void buildCmd(string cmd)
   }
 }
 
+bool g_target_changed = false;
+
 class DepNode
 {
 public:
@@ -167,14 +169,14 @@ public:
            g_explicit_deps.find(path_) != g_explicit_deps.end();
   }
 
-  void rebuild()
+  time_t rebuild()
   {
     if (auto it = g_explicit_deps.find(path_) ; it != g_explicit_deps.end())
     {
       string cmd = g_compile_cmd_prefix + " " +
                    g_explicit_deps[path_].cmd_after_compile_prefix;
       buildCmd(cmd);
-      modified_ = time(0);
+      return time(0);
     }
     else if (endsWith(path_, ".o"))
     {
@@ -184,35 +186,39 @@ public:
         assert(endsWith(depname, ".cc"));
         string cmd = g_compile_cmd_prefix + " -c -o " + path_ + " " + depname;
         buildCmd(cmd);
-        modified_ = time(0);
+        return time(0);
       }
     }
     else if (path_ == g_target_binary_name)
     {
+      g_target_changed = true;
       string cmd = g_compile_cmd_prefix;
       for (auto [name, val] : deps_)
         cmd += " " + name;
       cmd += " -o " + g_target_binary_name + " " + g_compile_end_libs;
       buildCmd(cmd);
-      modified_ = time(0);
+      return time(0);
     }
+    return modified_;
   }
 
-  bool rebuildIfNeeded(time_t cutoff)
+  time_t rebuildIfNeeded()
   {
-    bool need_rebuild = false;
-    if (weAreReal() && cutoff > modified_)
-      cutoff = modified_;
-    if (modified_ > cutoff)
-      need_rebuild = true;
-
+    time_t most_recent = modified_;
     for (auto [path, node] : deps_)
-      if (node->rebuildIfNeeded(cutoff))
-        need_rebuild = true;
+    {
+      time_t cur = node->rebuildIfNeeded();
+      if (cur > most_recent)
+        most_recent = cur;
+    }
 
-    if (need_rebuild)
-      rebuild();
-    return need_rebuild;
+    if (most_recent > modified_)
+    {
+      time_t maybe_update = rebuild();
+      if (maybe_update > most_recent)
+        most_recent = maybe_update;
+    }
+    return most_recent;
   }
 
   void printTree(int depth)
@@ -262,7 +268,7 @@ void makeObjDepFromCc(string cc_path, DepNode* target_binary)
   target_binary->addDep(obj_path, &g_all_nodes[obj_path]);
 }
 
-int main()
+int main(int argc, char** argv)
 {
   loadConfig();
 
@@ -310,9 +316,11 @@ int main()
 
   // a nice pretty view of your dependency "tree", if you're interested.
   // (entries are duplicated for each parent that depends on them).
-  // g_all_nodes[g_target_binary_name].printTree(0);
+  if (argc > 1 && string(argv[1]) == "--verbose")
+    g_all_nodes[g_target_binary_name].printTree(0);
 
   // we should now have a complete dependency graph. traverse it to build.
-  if (!g_all_nodes[g_target_binary_name].rebuildIfNeeded(time(0)))
+  g_all_nodes[g_target_binary_name].rebuildIfNeeded();
+  if (!g_target_changed)
     cout<<"ccsimplebuild: '"<<g_target_binary_name<<"' is up to date."<<endl;
 }
