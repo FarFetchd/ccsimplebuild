@@ -1,3 +1,5 @@
+#include <sys/stat.h>
+
 #include <cassert>
 #include <filesystem>
 #include <fstream>
@@ -271,6 +273,7 @@ void makeObjDepFromCc(string cc_path, DepNode* target_binary)
 int main(int argc, char** argv)
 {
   loadConfig();
+  mkdir("obj", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
   DepNode target_binary(g_target_binary_name);
 
