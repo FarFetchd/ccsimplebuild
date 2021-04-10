@@ -146,7 +146,9 @@ void buildCmd(string cmd)
   else
   {
     cout<<cmd<<endl;
-    runShellSync(cmd.c_str());
+    int ret = system(cmd.c_str());
+    if (ret != 0)
+      exit(ret);
   }
 }
 
