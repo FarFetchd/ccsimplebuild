@@ -306,8 +306,6 @@ int main(int argc, char** argv)
       preexisting.push_back(path);
   for (auto path : preexisting)
   {
-    if (endsWith(path, ".o"))
-      continue;
     vector<string> deps = directDeps(path);
     DepNode& node = g_all_nodes[path];
     for (auto const& dep : deps)
