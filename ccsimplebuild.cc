@@ -167,12 +167,6 @@ public:
 
   void addDep(string path, DepNode* node) { deps_[path] = node; }
 
-  bool weAreReal()
-  {
-    return endsWith(path_, ".o") || path_ == g_target_binary_name ||
-           g_explicit_deps.find(path_) != g_explicit_deps.end();
-  }
-
   time_t rebuild()
   {
     if (auto it = g_explicit_deps.find(path_) ; it != g_explicit_deps.end())
