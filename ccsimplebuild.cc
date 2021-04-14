@@ -204,18 +204,10 @@ public:
   {
     time_t most_recent = modified_;
     for (auto [path, node] : deps_)
-    {
-      time_t cur = node->rebuildIfNeeded();
-      if (cur > most_recent)
-        most_recent = cur;
-    }
+      most_recent = std::max(most_recent, node->rebuildIfNeeded());
 
     if (most_recent > modified_)
-    {
-      time_t maybe_update = rebuild();
-      if (maybe_update > most_recent)
-        most_recent = maybe_update;
-    }
+      most_recent = std::max(most_recent, rebuild());
     return most_recent;
   }
 
