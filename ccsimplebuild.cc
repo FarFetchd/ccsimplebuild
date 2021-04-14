@@ -236,18 +236,6 @@ DepNode* getOrInsertNode(string path)
   return &g_all_nodes[path];
 }
 
-void populateExplicitDeps()
-{
-  for (auto [expdepath, expdepstuff] : g_explicit_deps)
-  {
-    DepNode node(expdepath);
-    for (auto const& depath : expdepstuff.dep_paths)
-      node.addDep(depath, getOrInsertNode(depath));
-    g_all_nodes[expdepath] = node;
-    g_all_nodes[g_target_binary_name].addDep(expdepath, &g_all_nodes[expdepath]);
-  }
-}
-
 void makeObjDepFromCc(string cc_path, DepNode* target_binary)
 {
   string obj_path("obj/");
@@ -301,7 +289,14 @@ int main(int argc, char** argv)
   // actually add the target binary node to the map, and load in explicitly
   // specified deps (all of which the target binary is assumed to depend on).
   g_all_nodes[g_target_binary_name] = target_binary;
-  populateExplicitDeps();
+  for (auto [expdepath, expdepstuff] : g_explicit_deps)
+  {
+    DepNode node(expdepath);
+    for (auto const& depath : expdepstuff.dep_paths)
+      node.addDep(depath, getOrInsertNode(depath));
+    g_all_nodes[expdepath] = node;
+    g_all_nodes[g_target_binary_name].addDep(expdepath, &g_all_nodes[expdepath]);
+  }
 
   // a nice pretty view of your dependency "tree", if you're interested.
   // (entries are duplicated for each parent that depends on them).
