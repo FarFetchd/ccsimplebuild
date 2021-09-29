@@ -40,9 +40,9 @@ struct ExplicitDep
 // key is path
 unordered_map<string, ExplicitDep> g_explicit_deps;
 
-void loadConfig()
+void loadConfig(string fname)
 {
-  auto entry = filesystem::directory_entry("./ccsimple.buildfile");
+  auto entry = filesystem::directory_entry(fname);
   if (!entry.exists() || !entry.is_regular_file())
   {
     g_target_binary_name = "default_ccsimplebuild_output";
@@ -50,7 +50,7 @@ void loadConfig()
     g_compile_end_libs = "";
     return;
   }
-  ifstream reader("./ccsimple.buildfile");
+  ifstream reader(fname);
   vector<string> lines;
   string line;
   while (getline(reader, line))
@@ -274,7 +274,11 @@ void makeObjDepFromCc(string cc_path, DepNode* target_binary)
 
 int main(int argc, char** argv)
 {
-  loadConfig();
+  string config_fname = "ccsimple.buildfile";
+  if (argc > 1)
+    config_fname = argv[1];
+  loadConfig(config_fname);
+
   mkdir("obj", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
   DepNode target_binary(g_target_binary_name);
