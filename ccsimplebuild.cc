@@ -171,9 +171,14 @@ public:
   {
     if (auto it = g_explicit_deps.find(path_) ; it != g_explicit_deps.end())
     {
-      string cmd = g_compile_cmd_prefix + " " +
-                   g_explicit_deps[path_].cmd_after_compile_prefix;
-      buildCmd(cmd);
+      // specifying "CompileSuffix=" (blank) indicates that this item is just
+      // linked into the final build as-is, and has no build rule
+      if (!g_explicit_deps[path_].cmd_after_compile_prefix.empty())
+      {
+        string cmd = g_compile_cmd_prefix + " " +
+                     g_explicit_deps[path_].cmd_after_compile_prefix;
+        buildCmd(cmd);
+      }
       return time(0);
     }
     else if (endsWith(path_, ".o"))
@@ -191,8 +196,19 @@ public:
     {
       g_target_changed = true;
       string cmd = g_compile_cmd_prefix;
+
+      // external static libraries must come at the end
+      vector<string> put_at_end;
       for (auto [name, val] : deps_)
+      {
+        if (endsWith(name, ".a"))
+          put_at_end.push_back(name);
+        else
+          cmd += " " + name;
+      }
+      for (auto name : put_at_end)
         cmd += " " + name;
+
       cmd += " -o " + g_target_binary_name + " " + g_compile_end_libs;
       buildCmd(cmd);
       return time(0);

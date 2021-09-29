@@ -9,4 +9,4 @@ To use, fill in a ccsimple.buildfile in that same directory (or don't!) See the
 sample directories for examples. Run `ccsimplebuild` in there.
 
 ccsimplebuild also has limited support for compiling source files outside of the
-main source directory into the project - see sample2.
+main source directory into the project - see sample2 and sample3.
