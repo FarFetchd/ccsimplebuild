@@ -216,11 +216,21 @@ public:
     return modified_;
   }
 
-  time_t rebuildIfNeeded()
+  time_t rebuildIfNeeded(vector<string> loopguard)
   {
+    loopguard.push_back(path_);
+    if (loopguard.size() > 99)
+    {
+      cout << "(Likely) infinite dependency loop detected: ";
+      for (auto x : loopguard)
+        cout << x << " ==> ";
+      cout << "..." << endl;
+      exit(1);
+    }
+
     time_t most_recent = modified_;
     for (auto [path, node] : deps_)
-      most_recent = std::max(most_recent, node->rebuildIfNeeded());
+      most_recent = std::max(most_recent, node->rebuildIfNeeded(loopguard));
 
     if (most_recent > modified_)
       most_recent = std::max(most_recent, rebuild());
@@ -320,7 +330,7 @@ int main(int argc, char** argv)
     g_all_nodes[g_target_binary_name].printTree(0);
 
   // we should now have a complete dependency graph. traverse it to build.
-  g_all_nodes[g_target_binary_name].rebuildIfNeeded();
+  g_all_nodes[g_target_binary_name].rebuildIfNeeded({});
   if (!g_target_changed)
     cout<<"ccsimplebuild: '"<<g_target_binary_name<<"' is up to date."<<endl;
 }
