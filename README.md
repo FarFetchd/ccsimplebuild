@@ -17,8 +17,5 @@ To use, you can either:
 * Run `ccsimplebuild mycustombuildfilename` to load a buildfile named
   mycustombuildfilename, rather than ccsimple.buildfile.
 
-ccsimplebuild also has limited support for compiling source files outside of the
-main source directory into the project - see sample2 and sample3.
-
 Suggested compilation command:
 `g++ -g -std=c++17 ccsimplebuild.cc -o ccsimplebuild && sudo cp ccsimplebuild /usr/local/bin/`

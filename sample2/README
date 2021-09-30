@@ -1,8 +1,0 @@
-An example of explicitly specifying dependencies that ccsimplebuild wouldn't
-automatically pick up on. Here, the binary my_other_fun_executable needs the
-source files somewhere/else/weird.cpp and somewhere/else/weird2.cpp compiled
-into it. weird.cpp itself depends on one_of_ours.cc and ../reallyweird.h, while
-weird2.cpp depends on example.cc and ../reallyweird.h.
-
-This is kind of gross; if you use these you are probably at the edge of what it
-makes sense to use ccsimplebuild for.

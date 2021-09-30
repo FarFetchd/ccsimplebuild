@@ -1,3 +1,0 @@
-Example of including a .a static lib in the final linking. Specifying a blank
-"CompileSuffix=" tells ccsimplebuild that this item (the .a lib) is not
-something that can be rebuilt.

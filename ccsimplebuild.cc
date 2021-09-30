@@ -25,21 +25,6 @@ string g_compile_cmd_prefix;
 // end lib flags, e.g. -latomic -lcurl
 string g_compile_end_libs;
 
-// list of binary target's additional deps:
-//  pathname of dep output (key of map)
-//  list of pathnames of files it depends on
-//  command to execute (everything AFTER g_compile_cmd_prefix)
-struct ExplicitDep
-{
-  ExplicitDep() {}
-  ExplicitDep(vector<string> dp, string c)
-      : dep_paths(dp), cmd_after_compile_prefix(c) {}
-  vector<string> dep_paths;
-  string cmd_after_compile_prefix;
-};
-// key is path
-unordered_map<string, ExplicitDep> g_explicit_deps;
-
 void loadConfig(string fname)
 {
   auto entry = filesystem::directory_entry(fname);
@@ -57,25 +42,13 @@ void loadConfig(string fname)
     lines.push_back(line);
   while (lines.back().empty())
     lines.pop_back();
-  assert(lines.size() >= 3);
-  assert((lines.size() - 3) % 4 == 0);
+  assert(lines.size() == 3);
   assert(lines[0].find("OutputBinaryFilename=") == 0);
   g_target_binary_name = lines[0].substr(21);
   assert(lines[1].find("CompileCommandPrefix=") == 0);
   g_compile_cmd_prefix = lines[1].substr(21);
   assert(lines[2].find("LibrariesToLink=") == 0);
   g_compile_end_libs = lines[2].substr(16);
-  for (int i = 3; i < lines.size(); i+=4)
-  {
-    assert(lines[i].find("ExplicitDependency:") == 0);
-    assert(lines[i+1].find("  Output=") == 0);
-    string output = lines[i+1].substr(9);
-    assert(lines[i+2].find("  CompileSuffix=") == 0);
-    string suffix = lines[i+2].substr(16);
-    assert(lines[i+3].find("  DependsOn=") == 0);
-    string depends = lines[i+3].substr(12);
-    g_explicit_deps[output] = ExplicitDep(splitString(depends, ','), suffix);
-  }
 }
 // =============================================================================
 
@@ -169,19 +142,7 @@ public:
 
   time_t rebuild()
   {
-    if (auto it = g_explicit_deps.find(path_) ; it != g_explicit_deps.end())
-    {
-      // specifying "CompileSuffix=" (blank) indicates that this item is just
-      // linked into the final build as-is, and has no build rule
-      if (!g_explicit_deps[path_].cmd_after_compile_prefix.empty())
-      {
-        string cmd = g_compile_cmd_prefix + " " +
-                     g_explicit_deps[path_].cmd_after_compile_prefix;
-        buildCmd(cmd);
-      }
-      return time(0);
-    }
-    else if (endsWith(path_, ".o"))
+    if (endsWith(path_, ".o"))
     {
       assert(deps_.size() == 1);
       for (auto [depname, dep] : deps_)
@@ -316,17 +277,8 @@ int main(int argc, char** argv)
       node.addDep(dep, getOrInsertNode(dep));
   }
 
-  // actually add the target binary node to the map, and load in explicitly
-  // specified deps (all of which the target binary is assumed to depend on).
+  // actually add the target binary node to the map.
   g_all_nodes[g_target_binary_name] = target_binary;
-  for (auto [expdepath, expdepstuff] : g_explicit_deps)
-  {
-    DepNode node(expdepath);
-    for (auto const& depath : expdepstuff.dep_paths)
-      node.addDep(depath, getOrInsertNode(depath));
-    g_all_nodes[expdepath] = node;
-    g_all_nodes[g_target_binary_name].addDep(expdepath, &g_all_nodes[expdepath]);
-  }
 
   // a nice pretty view of your dependency "tree", if you're interested.
   // (entries are duplicated for each parent that depends on them).
