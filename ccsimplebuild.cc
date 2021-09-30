@@ -15,7 +15,7 @@ constexpr bool kDryRun = false;
 vector<string> splitString(string s, char delim);
 
 // =============================================================================
-// everything in this section comes from ccsimple.buildfile, which is
+// everything in this section comes from default.ccbuildfile, which is
 // analagous to a Makefile.
 //
 // name of binary to build
@@ -251,7 +251,7 @@ void makeObjDepFromCc(string cc_path, DepNode* target_binary)
 
 int main(int argc, char** argv)
 {
-  string config_fname = "ccsimple.buildfile";
+  string config_fname = "default.ccbuildfile";
   if (argc > 1)
     config_fname = argv[1];
   loadConfig(config_fname);
