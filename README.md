@@ -12,10 +12,10 @@ To use, you can either:
 
 * Simply run `ccsimplebuild` in that directory. ccsimplebuild has default
   behavior that should work for simple projects. (See sample0).
-* Run `ccsimplebuild` with a file named ccsimple.buildfile existing in that same
+* Run `ccsimplebuild` with a file named default.ccbuildfile existing in that same
   directory. See the sample directories for buildfile examples.
 * Run `ccsimplebuild mycustombuildfilename` to load a buildfile named
-  mycustombuildfilename, rather than ccsimple.buildfile.
+  mycustombuildfilename, rather than default.ccbuildfile.
 
 Suggested compilation command:
 `g++ -g -std=c++17 ccsimplebuild.cc -o ccsimplebuild && sudo cp ccsimplebuild /usr/local/bin/`

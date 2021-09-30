@@ -1,5 +1,5 @@
-The simplest ccsimple.buildfile... none! When ccsimple.buildfile does not exist,
+The simplest default.ccbuildfile... none! When default.ccbuildfile does not exist,
 ccsimplebuild defaults to naming the output binary
 "default_ccsimplebuild_output", compiling with the command prefix
 `g++ -std=c++17`, and not appending any libraries to be linked. If that fits
-your project, you do not need a ccsimple.buildfile.
+your project, you do not need a default.ccbuildfile.
