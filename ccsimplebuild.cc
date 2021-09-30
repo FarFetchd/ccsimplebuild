@@ -52,6 +52,16 @@ void loadConfig(string fname)
 }
 // =============================================================================
 
+void checkSanitized(string path)
+{
+  if (path.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                             "abcdefghijklmnopqrstuvwxyz"
+                             "0123456789_-+./") != std::string::npos)
+  {
+    cout << "Invalid filename: " << path << endl;
+    exit(1);
+  }
+}
 string cleanPath(string path)
 {
   return path[0] == '.' ? path.substr(2) : path;
@@ -90,6 +100,7 @@ vector<string> splitString(string s, char delim)
 
 vector<string> directDeps(string path)
 {
+  checkSanitized(path);
   string cmd("grep \"#include \\\"\" ");
   cmd += path + " | sed 's/.*#include \"// ; s/\"//'";
   string out = runShellSync(cmd.c_str());
@@ -133,12 +144,17 @@ public:
   DepNode() {}
   DepNode(string path) : path_(path)
   {
+    checkSanitized(path);
     auto entry = filesystem::directory_entry(path);
     if (entry.exists())
       modified_ = to_time_t(entry.last_write_time());
   }
 
-  void addDep(string path, DepNode* node) { deps_[path] = node; }
+  void addDep(string path, DepNode* node)
+  {
+    checkSanitized(path);
+    deps_[path] = node;
+  }
 
   time_t rebuild()
   {
