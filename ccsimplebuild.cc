@@ -252,8 +252,21 @@ void makeObjDepFromCc(string cc_path, DepNode* target_binary)
 int main(int argc, char** argv)
 {
   string config_fname = "default.ccbuildfile";
+  bool print_tree = false;
   if (argc > 1)
-    config_fname = argv[1];
+  {
+    if (string(argv[1]) == "--verbose")
+      print_tree = true;
+    else
+      config_fname = argv[1];
+  }
+  if (argc > 2)
+  {
+    if (string(argv[2]) == "--verbose")
+      print_tree = true;
+    else
+      config_fname = argv[2];
+  }
   loadConfig(config_fname);
 
   mkdir("obj", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
@@ -298,7 +311,7 @@ int main(int argc, char** argv)
 
   // a nice pretty view of your dependency "tree", if you're interested.
   // (entries are duplicated for each parent that depends on them).
-  if (argc > 1 && string(argv[1]) == "--verbose")
+  if (print_tree)
     g_all_nodes[g_target_binary_name].printTree(0);
 
   // we should now have a complete dependency graph. traverse it to build.

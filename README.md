@@ -18,4 +18,4 @@ To use, you can either:
   mycustombuildfilename, rather than default.ccbuildfile.
 
 Suggested compilation command:
-`g++ -g -std=c++17 ccsimplebuild.cc -o ccsimplebuild && sudo cp ccsimplebuild /usr/local/bin/`
+`g++ -std=c++17 ccsimplebuild.cc -o ccsimplebuild && sudo cp ccsimplebuild /usr/local/bin/`
