@@ -30,6 +30,11 @@ void loadConfig(string fname)
   auto entry = filesystem::directory_entry(fname);
   if (!entry.exists() || !entry.is_regular_file())
   {
+    if (fname != "default.ccbuildfile")
+    {
+      cout << "Error: buildfile " << fname << " does not exist." << endl;
+      exit(1);
+    }
     g_target_binary_name = "default_ccsimplebuild_output";
     g_compile_cmd_prefix = "g++ -std=c++17";
     g_compile_end_libs = "";
