@@ -137,7 +137,7 @@ void buildCmd(string cmd)
     cout<<cmd<<endl;
     int ret = system(cmd.c_str());
     if (ret != 0)
-      exit(ret);
+      exit(1);
   }
 }
 
@@ -323,4 +323,5 @@ int main(int argc, char** argv)
   g_all_nodes[g_target_binary_name].rebuildIfNeeded({});
   if (!g_target_changed)
     cout<<"ccsimplebuild: '"<<g_target_binary_name<<"' is up to date."<<endl;
+  return 0;
 }
