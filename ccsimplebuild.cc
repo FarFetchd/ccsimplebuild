@@ -12,7 +12,15 @@
 
 using namespace std;
 constexpr bool kDryRun = false;
-vector<string> splitString(string s, char delim);
+
+template <typename TP>
+time_t to_time_t(TP tp)
+{
+  using namespace chrono;
+  auto sctp = time_point_cast<system_clock::duration>(
+      tp - TP::clock::now() + system_clock::now());
+  return system_clock::to_time_t(sctp);
+}
 
 // =============================================================================
 // everything in this section comes from default.ccbuildfile, which is
@@ -25,6 +33,7 @@ string g_compile_cmd_prefix;
 // end lib flags, e.g. -latomic -lcurl
 string g_compile_end_libs;
 
+time_t g_buildfile_modtime_sse = 0;
 void loadConfig(string fname)
 {
   auto entry = filesystem::directory_entry(fname);
@@ -40,6 +49,9 @@ void loadConfig(string fname)
     g_compile_end_libs = "";
     return;
   }
+  else
+    g_buildfile_modtime_sse = to_time_t(entry.last_write_time());
+
   ifstream reader(fname);
   vector<string> lines;
   string line;
@@ -70,14 +82,6 @@ void checkSanitized(string path)
 string cleanPath(string path)
 {
   return path[0] == '.' ? path.substr(2) : path;
-}
-template <typename TP>
-time_t to_time_t(TP tp)
-{
-  using namespace chrono;
-  auto sctp = time_point_cast<system_clock::duration>(
-      tp - TP::clock::now() + system_clock::now());
-  return system_clock::to_time_t(sctp);
 }
 
 // Basically like VAR=`cmd` in bash.
@@ -210,7 +214,7 @@ public:
       exit(1);
     }
 
-    time_t most_recent = modified_;
+    time_t most_recent = std::max(modified_, g_buildfile_modtime_sse);
     for (auto [path, node] : deps_)
       most_recent = std::max(most_recent, node->rebuildIfNeeded(loopguard));
 
