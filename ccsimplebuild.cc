@@ -84,6 +84,14 @@ string cleanPath(string path)
   return path[0] == '.' ? path.substr(2) : path;
 }
 
+// HACK to support compiling on Windows with MSYS2
+#ifndef popen
+extern "C" FILE* popen(const char* command, const char* mode);
+#endif
+#ifndef pclose
+extern "C" void pclose(FILE* pipe);
+#endif
+
 // Basically like VAR=`cmd` in bash.
 string runShellSync(const char* cmd)
 {
