@@ -17,5 +17,12 @@ To use, you can either:
 * Run `ccsimplebuild mycustombuildfilename` to load a buildfile named
   mycustombuildfilename, rather than default.ccbuildfile.
 
-Suggested compilation command:
+Suggested compilation and installation command:
 `g++ -std=c++17 ccsimplebuild.cc -o ccsimplebuild -lstdc++fs && sudo cp ccsimplebuild /usr/local/bin/`
+
+# build.sh
+If you publish code meant to be built with ccsimplebuild, and don't want people
+to be turned off by an unfamiliar build tool, include build.sh: it correctly
+interprets the ccbuildfile format, so that `./build.sh` works just as well as
+`ccsimplebuild` for a first time compilation. It politely points out that they
+can switch to ccsimplebuild for smoother recompilation.
